@@ -51,6 +51,26 @@ defmodule Bitpack do
     }
   end
 
+  @doc """
+  Insert `value` at given `index` in `bitpack`. The `index` can be any
+  non-negative number. The `value` cannot be greater than the `max_value`
+  of the `bitpack`.
+
+  "Unset" indices that fall between two "set" indices have the value `0`.
+
+  ## Examples
+
+      iex> bitpack = Bitpack.new(10) |> Bitpack.set(3, 7)
+      ...> Bitpack.get(bitpack, 3)
+      7
+
+      iex> bitpack = Bitpack.new(10) |> Bitpack.set(3, 7)
+      ...> Enum.map(bitpack, & &1)
+      [0, 0, 0, 7]
+  """
+  @spec set(Bitpack.t(), non_neg_integer(), non_neg_integer()) :: Bitpack.t()
+  def set(bitpack, index, value)
+
   def set(%Bitpack{max_value: max_value}, _index, value) when value > max_value do
     raise ArgumentError, "value #{value} is greater than the maximum allowed value #{max_value}."
   end
@@ -75,6 +95,40 @@ defmodule Bitpack do
     }
   end
 
+  @doc """
+  Append `value` to the end of the `bitpack`. See `set/3` for more details.
+
+  ## Examples
+
+      iex> Bitpack.new(5)
+      ...> |> Bitpack.append(1)
+      ...> |> Bitpack.append(2)
+      ...> |> Bitpack.append(3)
+      ...> |> Enum.map(& &1)
+      [1, 2, 3]
+  """
+  @spec append(Bitpack.t(), non_neg_integer()) :: Bitpack.t()
+  def append(bitpack, value)
+
+  def append(%Bitpack{max_value: max_value}, value) when value > max_value do
+    raise ArgumentError, "value #{value} is greater than the maximum allowed value #{max_value}."
+  end
+
+  def append(%Bitpack{} = bitpack, value) do
+    set(bitpack, bitpack.max_idx + 1, value)
+  end
+
+  @doc """
+  Get the value at the given `index` of the `bitpack`.
+
+  ## Examples
+
+      iex> Bitpack.new(2)
+      ...> |> Bitpack.set(5, 2)
+      ...> |> Bitpack.get(5)
+      2
+  """
+  @spec get(Bitpack.t(), non_neg_integer()) :: non_neg_integer()
   def get(%Bitpack{} = bitpack, index) do
     offset = bitpack.bit_width * index
     Bitwise.band(Bitwise.bsr(bitpack.data, offset), bitpack.bit_mask)

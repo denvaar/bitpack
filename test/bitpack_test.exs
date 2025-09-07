@@ -1,6 +1,8 @@
 defmodule BitpackTest do
   use ExUnit.Case
 
+  require Integer
+
   import ExUnit.CaptureIO
 
   doctest Bitpack
@@ -58,6 +60,34 @@ defmodule BitpackTest do
           assert n == Bitpack.get(bitpack, idx)
           bitpack
       end
+    end
+
+    test "binary values" do
+      range = 0..10
+
+      bitpack =
+        for n <- range, reduce: Bitpack.new(1) do
+          bitpack ->
+            if Integer.is_even(n) do
+              Bitpack.append(bitpack, 0)
+            else
+              Bitpack.append(bitpack, 1)
+            end
+        end
+
+      assert "01010101010" = Enum.join(bitpack, "")
+    end
+  end
+
+  describe "Bitpack.append/2" do
+    test "appends values" do
+      Bitpack.new(100)
+      |> Bitpack.append(100)
+      |> tap(fn bitpack -> assert 100 = bitpack.data end)
+      |> Bitpack.append(100)
+      |> tap(fn bitpack -> assert 12900 = bitpack.data end)
+      |> Bitpack.append(100)
+      |> tap(fn bitpack -> assert 1_651_300 = bitpack.data end)
     end
   end
 
