@@ -1,5 +1,7 @@
 defmodule Bitpack do
   @moduledoc """
+  ** Note - This is a (mostly failed) experiment **
+
   A `Bitpack` has characteristics of an array, but with the goal
   of striving to be as memory-efficient as possible.
 
@@ -38,7 +40,13 @@ defmodule Bitpack do
 
   @spec new(non_neg_integer()) :: t()
   def new(max_value) do
-    bit_width = trunc(:math.floor(:math.log2(max_value)) + 1)
+    bit_width =
+      max_value
+      |> :math.log2()
+      |> :math.floor()
+      |> Kernel.+(1)
+      |> trunc()
+
     bit_mask = Bitwise.bsl(1, bit_width) - 1
 
     %Bitpack{
@@ -132,5 +140,25 @@ defmodule Bitpack do
   def get(%Bitpack{} = bitpack, index) do
     offset = bitpack.bit_width * index
     Bitwise.band(Bitwise.bsr(bitpack.data, offset), bitpack.bit_mask)
+  end
+
+  @doc """
+  Convert the given list, `seq`, with a maximum value of `max_value` to a `Bitpack`.
+  """
+  @spec from_list(list(non_neg_integer()), non_neg_integer()) :: Bitpack.t()
+  def from_list(seq, max_value) do
+    max_value
+    |> new()
+    |> accumulate_from_list(seq)
+  end
+
+  defp accumulate_from_list(%Bitpack{} = bitpack, [head]) do
+    append(bitpack, head)
+  end
+
+  defp accumulate_from_list(%Bitpack{} = bitpack, [head | tail]) do
+    bitpack
+    |> append(head)
+    |> accumulate_from_list(tail)
   end
 end
