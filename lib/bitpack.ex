@@ -139,7 +139,10 @@ defmodule Bitpack do
   @spec get(Bitpack.t(), non_neg_integer()) :: non_neg_integer()
   def get(%Bitpack{} = bitpack, index) do
     offset = bitpack.bit_width * index
-    Bitwise.band(Bitwise.bsr(bitpack.data, offset), bitpack.bit_mask)
+
+    bitpack.data
+    |> Bitwise.bsr(offset)
+    |> Bitwise.band(bitpack.bit_mask)
   end
 
   @doc """

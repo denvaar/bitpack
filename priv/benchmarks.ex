@@ -1,13 +1,12 @@
 defmodule Benchmark do
-  def all(n) do
-    build_sequence(n)
-    random_access_read(n)
-    random_access_write(n)
+  def all(n, benchee_opts \\ []) do
+    build_sequence(n, benchee_opts)
+    random_access_read(n, benchee_opts)
+    random_access_write(n, benchee_opts)
   end
 
-  def build_sequence(n) do
-    # input = Range.to_list(1..n)
-    input = List.duplicate(10, n)
+  def build_sequence(n, benchee_opts) do
+    input = 1..n |> Enum.map(fn _ -> Enum.random(0..n) end)
 
     Benchee.run(
       %{
@@ -15,7 +14,17 @@ defmodule Benchmark do
           _ = :array.from_list(input)
           :ok
         end,
-        "build sequence tuple" => fn ->
+        "build sequence List" => fn ->
+          seq =
+            for n <- input, reduce: [] do
+              seq -> [n | seq]
+            end
+
+          _ = Enum.reverse(seq)
+
+          :ok
+        end,
+        "build sequence Tuple" => fn ->
           _ = List.to_tuple(input)
           :ok
         end,
@@ -32,20 +41,22 @@ defmodule Benchmark do
           :ok
         end
       },
-      profile_after: true
+      benchee_opts
     )
 
     :ok
   end
 
-  def random_access_read(n) do
-    input = List.duplicate(10, n)
+  def random_access_read(n, benchee_opts) do
+    input = 1..n |> Enum.map(fn _ -> Enum.random(0..n) end)
 
+    seq_list = input
     seq_array = :array.from_list(input)
     seq_tuple = List.to_tuple(input)
     seq_map = Map.new(Enum.with_index(List.duplicate(10, n)), fn {x, idx} -> {idx, x} end)
-    seq_bitpack = Bitpack.from_list(input, 10)
-    seq_bitpack2 = Bitpack2.from_list(input, 10)
+    seq_bitpack = Bitpack.from_list(input, n)
+    seq_bitpack2 = Bitpack2.from_list(input, n)
+    seq_bitpack3 = Bitpack3.from_list(input, n)
 
     random_indices = Enum.shuffle(0..(n - 1))
 
@@ -58,7 +69,14 @@ defmodule Benchmark do
 
           :ok
         end,
-        "rand access read tuple" => fn ->
+        "rand access read List" => fn ->
+          for idx <- random_indices do
+            _ = Enum.at(seq_list, idx)
+          end
+
+          :ok
+        end,
+        "rand access read Tuple" => fn ->
           for idx <- random_indices do
             _ = elem(seq_tuple, idx)
           end
@@ -85,20 +103,29 @@ defmodule Benchmark do
           end
 
           :ok
+        end,
+        "rand access read Bitpack3" => fn ->
+          for idx <- random_indices do
+            _ = Bitpack3.get(seq_bitpack3, idx)
+          end
+
+          :ok
         end
       },
-      profile_after: true
+      benchee_opts
     )
 
     :ok
   end
 
-  def random_access_write(n) do
+  def random_access_write(n, benchee_opts) do
+    seq_list = []
     seq_array = :array.new()
     seq_tuple = {}
     seq_map = %{}
     seq_bitpack = Bitpack.new(n)
     seq_bitpack2 = Bitpack2.new(n)
+    seq_bitpack3 = Bitpack3.new(n)
 
     random_indices = Enum.shuffle(0..(n - 1))
 
@@ -111,7 +138,14 @@ defmodule Benchmark do
 
           :ok
         end,
-        "rand access write tuple" => fn ->
+        "rand access write List" => fn ->
+          for idx <- random_indices, reduce: seq_list do
+            seq_list -> List.insert_at(seq_list, idx, idx)
+          end
+
+          :ok
+        end,
+        "rand access write Tuple" => fn ->
           for idx <- random_indices, reduce: seq_tuple do
             seq_tuple ->
               length = tuple_size(seq_tuple)
@@ -149,9 +183,16 @@ defmodule Benchmark do
           end
 
           :ok
+        end,
+        "rand access write Bitpack3" => fn ->
+          for idx <- random_indices, reduce: seq_bitpack3 do
+            seq_bitpack3 -> Bitpack3.set(seq_bitpack3, idx, idx)
+          end
+
+          :ok
         end
       },
-      profile_after: true
+      benchee_opts
     )
 
     :ok

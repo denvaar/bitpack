@@ -5,7 +5,7 @@ defmodule Bitpack.MixProject do
     [
       app: :bitpack,
       version: "0.1.0",
-      elixir: "~> 1.18",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       consolidate_protocols: Mix.env() != :dev,
       deps: deps()
